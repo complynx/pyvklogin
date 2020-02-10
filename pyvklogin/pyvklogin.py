@@ -52,13 +52,18 @@ def get_token_cmd(app_id, api_ver='5.64', scope=0):
     print(r.read())
 
 
-def get_token_gui_subprocess(queue, app_id, scope, redirect_uri, api_ver):
+def get_token_gui_subprocess(queue, app_id, scope, redirect_uri, api_ver, storage):
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtCore import QUrl
-    from PyQt5.QtWebEngineWidgets import QWebEngineView
+    from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEnginePage
 
     app = QApplication([])
     browser = QWebEngineView()
+
+    if storage is not None:
+        profile = QWebEngineProfile(storage, browser)
+        webpage = QWebEnginePage(profile, browser)
+        browser.setPage(webpage)
 
     def url_listener(url):
         url_s = url.toString()
@@ -80,13 +85,13 @@ def get_token_gui_subprocess(queue, app_id, scope, redirect_uri, api_ver):
     return app.exec_()
 
 
-def get_token_gui(app_id, api_ver='5.64', scope=0):
+def get_token_gui(app_id, api_ver='5.64', scope=0, storage=None):
     from multiprocessing import Process, Queue
 
     redirect_uri = 'https://oauth.vk.com/blank.html'
 
     queue = Queue()
-    proc = Process(target=get_token_gui_subprocess, args=(queue, app_id, scope, redirect_uri, api_ver))
+    proc = Process(target=get_token_gui_subprocess, args=(queue, app_id, scope, redirect_uri, api_ver, storage))
     proc.start()
 
     return parse_token(queue.get())
