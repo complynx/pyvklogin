@@ -66,7 +66,6 @@ def get_token_gui_subprocess(queue, app_id, scope, redirect_uri, api_ver, storag
         browser.setPage(webpage)
 
     def url_listener(url):
-        nonlocal log
         url_s = url.toString()
         if url_s.startswith(redirect_uri):
             queue.put(url.toString())
