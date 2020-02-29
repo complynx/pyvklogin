@@ -101,8 +101,8 @@ def get_token_gui(app_id, api_ver='5.64', scope=0, storage=None, no_show=False):
 
 
 if __name__ == "__main__":
-    app_id = 4527090
-    secret_key = "m0WcIM4xQAMZXJVVpwqU"
+    app_id = 1234567
+    secret_key = "[secret]"
     api_versin = "5.95"
     lang = 'ru'
     max_attempts = 10
