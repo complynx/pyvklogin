@@ -53,37 +53,7 @@ def get_token_cmd(app_id, api_ver='5.64', scope=0):
 
 
 def get_token_gui_subprocess(queue, app_id, scope, redirect_uri, api_ver, storage, no_show):
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtCore import QUrl
-    from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEnginePage
-
-    app = QApplication([])
-    browser = QWebEngineView()
-
-    if storage is not None:
-        profile = QWebEngineProfile(storage, browser)
-        webpage = QWebEnginePage(profile, browser)
-        browser.setPage(webpage)
-
-    def url_listener(url):
-        url_s = url.toString()
-        if url_s.startswith(redirect_uri):
-            queue.put(url.toString())
-            browser.close()
-
-    browser.urlChanged.connect(url_listener)
-
-    browser.load(QUrl(token_getter_url(
-        client_id=app_id,
-        scope=scope,
-        redirect_uri=redirect_uri,
-        display="mobile",
-        v=api_ver,
-        response_type='token'
-    )))
-    if not no_show:
-        browser.show()
-    ret = app.exec_()
+    
     return ret
 
 
@@ -101,6 +71,7 @@ def get_token_gui(app_id, api_ver='5.64', scope=0, storage=None, no_show=False):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     app_id = 4527090
     secret_key = "m0WcIM4xQAMZXJVVpwqU"
     api_versin = "5.95"
