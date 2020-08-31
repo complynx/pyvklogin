@@ -11,6 +11,7 @@ else:
     from urllib.request import urlopen, HTTPCookieProcessor, build_opener
 
 log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG, filename="log.txt")
 
 
 def token_getter_url(**kwargs):
@@ -52,60 +53,61 @@ def get_token_cmd(app_id, api_ver='5.64', scope=0):
     print(r.read())
 
 
-def get_token_gui_subprocess(queue, app_id, scope, redirect_uri, api_ver, storage, no_show):
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtCore import QUrl
-    from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEnginePage
-
-    app = QApplication([])
-    browser = QWebEngineView()
-
-    if storage is not None:
-        profile = QWebEngineProfile(storage, browser)
-        webpage = QWebEnginePage(profile, browser)
-        browser.setPage(webpage)
-
-    def url_listener(url):
-        url_s = url.toString()
-        if url_s.startswith(redirect_uri):
-            queue.put(url.toString())
-            browser.close()
-
-    browser.urlChanged.connect(url_listener)
-
-    browser.load(QUrl(token_getter_url(
-        client_id=app_id,
-        scope=scope,
-        redirect_uri=redirect_uri,
-        display="mobile",
-        v=api_ver,
-        response_type='token'
-    )))
-    if not no_show:
-        browser.show()
-    ret = app.exec_()
-    return ret
-
-
-def get_token_gui(app_id, api_ver='5.64', scope=0, storage=None, no_show=False):
-    from multiprocessing import Process, Queue
+def get_token_gui(app_id, api_ver='5.64', scope=0, storage="", no_show=False):
+    import subprocess
+    import os
+    import json
+    import tempfile
+    log.debug("obtaining token through gui")
 
     redirect_uri = 'https://oauth.vk.com/blank.html'
 
-    queue = Queue()
-    proc = Process(target=get_token_gui_subprocess,
-                   args=(queue, app_id, scope, redirect_uri, api_ver, storage, no_show))
-    proc.start()
+    exec = os.path.join(os.path.dirname(__file__), "pyvklogin_ext.py")
+    python_exec = sys.executable
+    if os.name == "nt" and sys.executable.endswith("python.exe"):
+        python_exec = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        if not os.path.isfile(python_exec):
+            python_exec = sys.executable
 
-    return parse_token(queue.get())
+    out = tempfile.NamedTemporaryFile(delete=False)
+    out_fn = out.name
+    out.close()
+
+    args = [python_exec, exec,
+        "--output", out_fn,
+        "--storage", storage,
+        "--redirect_uri", redirect_uri,
+        "--app_id", str(app_id),
+        "--api_version", api_ver,
+        "--scope", str(scope)
+    ]
+
+    if no_show:
+        args.append("--no_show")
+
+    ret = subprocess.run(args)
+    if ret.returncode != 0:
+        return {"error": ret}
+    else:
+        with open(out_fn, "r+") as f:
+            ret = json.load(f)
+        os.remove(out_fn)
+
+    return ret
 
 
 if __name__ == "__main__":
     app_id = 4527090
-    secret_key = "m0WcIM4xQAMZXJVVpwqU"
-    api_versin = "5.95"
-    lang = 'ru'
-    max_attempts = 10
-    timeout = 30.
+    api_version = "5.122"
+    log.info("starting")
 
-    print(get_token_gui(app_id=app_id, api_ver=api_versin, storage="""vkstorage"""))
+    token = get_token_gui(app_id=app_id, api_ver=api_version, scope=5, storage="""vkstorage""")
+    log.info(token)
+    import urllib
+    import json
+    req = urllib.request.Request(
+        f'https://api.vk.com/method/users.get?access_token={token["access_token"]}&v={api_version}')
+    with urllib.request.urlopen(req) as res:
+        res = json.load(res)
+        log.info(res)
+        print(res)
