@@ -75,7 +75,7 @@ args, rest_args = parser.parse_known_args()
 logging_kwargs = {}
 if args.logfile != "":
     logging_kwargs["filename"] = args.logfile
-logging.basicConfig(level=getattr(logging, args.logLevel), **logging_kwargs)
+    logging.basicConfig(level=getattr(logging, args.logLevel), **logging_kwargs)
 log.debug("starting subprocess")
 
 log.debug("args: " + repr(args))
